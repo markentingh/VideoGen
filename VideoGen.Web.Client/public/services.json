@@ -1,0 +1,65 @@
+[
+  {
+    "key": "short-transcripts",
+    "version": "0.1.0",
+    "name": "Short Transcripts",
+    "type": "transcript-generation",
+    "summary": "Generates video transcripts for TikTok, Instagram Reels, and YouTube Shorts.",
+    "gitrepo": "VideoGen.Services/Transcript-Generation/Short-Transcripts",
+    "iconurl": "/api/admin/services/icon?file=VideoGen.Services/Transcript-Generation/Short-Transcripts/VideoGen.Web.Client/public/services/short-transcripts.png"
+  },
+  {
+    "key": "local-videos",
+    "version": "0.1.0",
+    "name": "Local Videos",
+    "type": "video-library",
+    "summary": "Use local file system folders as a video asset library for generated videos.",
+    "gitrepo": "VideoGen.Services/Video-Library/Local-Videos",
+    "iconurl": "/api/admin/services/icon?file=VideoGen.Services/Video-Library/Local-Videos/VideoGen.Web.Client/public/services/local-videos.png"
+  },
+  {
+    "key": "video-platforms",
+    "version": "0.1.0",
+    "name": "Video Platforms",
+    "type": "video-generation",
+    "summary": "Configure API credentials for popular AI video generation platforms.",
+    "gitrepo": "VideoGen.Services/Video-Generation/Video-Platforms",
+    "iconurl": "/api/admin/services/icon?file=VideoGen.Services/Video-Generation/Video-Platforms/VideoGen.Web.Client/public/services/video-platforms.png"
+  },
+  {
+    "key": "hollywood-transitions",
+    "version": "0.1.0",
+    "name": "Hollywood Transitions",
+    "type": "video-transitions",
+    "summary": "Stitch project videos together with cinematic transitions.",
+    "gitrepo": "VideoGen.Services/Video-Transitions/Hollywood-Transitions",
+    "iconurl": "/api/admin/services/icon?file=VideoGen.Services/Video-Transitions/Hollywood-Transitions/VideoGen.Web.Client/public/services/hollywood-transitions.png"
+  },
+  {
+    "key": "gpt-image",
+    "version": "0.1.0",
+    "name": "GPT Image",
+    "type": "image-generation",
+    "summary": "Generate images via the OpenAI GPT Image 2.0 API.",
+    "gitrepo": "VideoGen.Services/Image-Generation/GPT-Image",
+    "iconurl": "/api/admin/services/icon?file=VideoGen.Services/Image-Generation/GPT-Image/VideoGen.Web.Client/public/services/gpt-image.png"
+  },
+  {
+    "key": "kokoro",
+    "version": "0.1.0",
+    "name": "Kokoro",
+    "type": "text-to-speech",
+    "summary": "English text-to-speech via the Kokoro open-weight model.",
+    "gitrepo": "VideoGen.Services/Text-To-Speech/Kokoro",
+    "iconurl": "/api/admin/services/icon?file=VideoGen.Services/Text-To-Speech/Kokoro/VideoGen.Web.Client/public/services/kokoro.png"
+  },
+  {
+    "key": "captions",
+    "version": "0.1.0",
+    "name": "Captions",
+    "type": "text-captions",
+    "summary": "Basic timed text captions for generated videos.",
+    "gitrepo": "VideoGen.Services/Text-Captions/Captions",
+    "iconurl": "/api/admin/services/icon?file=VideoGen.Services/Text-Captions/Captions/VideoGen.Web.Client/public/services/captions.png"
+  }
+]

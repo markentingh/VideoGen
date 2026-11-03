@@ -1,0 +1,132 @@
+import React, { useEffect, useState } from 'react';
+import { useSession } from '@/context/session';
+import { Services } from '@/api/admin/services';
+import ButtonIcon from '@/components/ui/button-icon';
+import Message from '@/components/ui/message';
+import Spinner from '@/components/ui/spinner';
+import Settings from './components/Settings';
+import TranscriptGeneration from './components/TranscriptGeneration';
+import VideoLibrary from './components/VideoLibrary';
+import VideoGeneration from './components/VideoGeneration';
+import VideoTransitions from './components/VideoTransitions';
+import ImageGeneration from './components/ImageGeneration';
+import TextToSpeech from './components/TextToSpeech';
+import TextCaptions from './components/TextCaptions';
+
+const menuItems = [
+  { key: 'transcript-generation', label: 'Transcript Generation', Component: TranscriptGeneration },
+  { key: 'video-library', label: 'Video Library', Component: VideoLibrary },
+  { key: 'video-generation', label: 'Video Generation', Component: VideoGeneration },
+  { key: 'video-transitions', label: 'Video Transitions', Component: VideoTransitions },
+  { key: 'image-generation', label: 'Image Generation', Component: ImageGeneration },
+  { key: 'text-to-speech', label: 'Text-To-Speech', Component: TextToSpeech },
+  { key: 'text-captions', label: 'Text Captions', Component: TextCaptions },
+];
+
+export default function DashboardServices() {
+  const session = useSession();
+  const { getAvailableServices, getInstalled, install } = Services(session);
+  const [active, setActive] = useState('transcript-generation');
+  const [services, setServices] = useState([]);
+  const [installed, setInstalled] = useState({});
+  const [installing, setInstalling] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState(null);
+
+  const fetchInstalled = () => {
+    getInstalled().then((response) => {
+      if (response.data.success) {
+        setInstalled(Object.fromEntries((response.data.data || []).map((service) => [service.key, service])));
+      }
+    }).catch(() => {});
+  };
+
+  const fetchServices = () => {
+    setLoading(true);
+    getAvailableServices().then((response) => {
+      setLoading(false);
+      if (response.data.success) {
+        setServices(response.data.data || []);
+      } else {
+        setMessage({ type: 'error', text: response.data.message || 'Failed to fetch services' });
+      }
+    }).catch((error) => {
+      setLoading(false);
+      setMessage({ type: 'error', text: error?.response?.data?.message || 'Failed to fetch services' });
+    });
+  };
+
+  const handleInstall = (service) => {
+    setInstalling(service.key);
+    setMessage(null);
+    install(service).then((response) => {
+      setInstalling(null);
+      if (response.data.success) {
+        setMessage({ type: 'info', text: response.data.message || `${service.name} installed` });
+        fetchInstalled();
+      } else {
+        setMessage({ type: 'error', text: response.data.message || `Failed to install ${service.name}` });
+      }
+    }).catch((error) => {
+      setInstalling(null);
+      setMessage({ type: 'error', text: error?.response?.data?.message || `Failed to install ${service.name}` });
+    });
+  };
+
+  useEffect(() => {
+    fetchServices();
+    fetchInstalled();
+  }, []);
+
+  const activeItem = menuItems.find((item) => item.key === active);
+  const activeServices = activeItem ? services.filter((service) => service.type === activeItem.key) : [];
+
+  return (
+    <div className="flex gap-6 items-start">
+      <aside className="w-60 shrink-0 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-bold">Services</h2>
+          <ButtonIcon
+            name="settings"
+            title="Settings"
+            color={active === 'settings' ? 'blue' : 'gray'}
+            onClick={() => setActive('settings')}
+          />
+        </div>
+        <nav className="p-2">
+          <ul className="space-y-1">
+            {menuItems.map((item) => (
+              <li key={item.key}>
+                <button
+                  onClick={() => setActive(item.key)}
+                  className={`w-full text-left px-3 py-2 rounded transition ${
+                    active === item.key
+                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </aside>
+      <div className="flex-1 min-w-0">
+        {message && (
+          <Message type={message.type} onClose={() => setMessage(null)}>
+            {message.text}
+          </Message>
+        )}
+        {loading ? (
+          <div className="flex items-center justify-center gap-3 py-16 text-gray-500 dark:text-gray-400">
+            <Spinner className="text-2xl" />
+            <span>Finding available services...</span>
+          </div>
+        ) : active === 'settings'
+          ? <Settings onSaved={fetchServices} />
+          : activeItem && <activeItem.Component services={activeServices} installed={installed} installing={installing} onInstall={handleInstall} />}
+      </div>
+    </div>
+  );
+}
