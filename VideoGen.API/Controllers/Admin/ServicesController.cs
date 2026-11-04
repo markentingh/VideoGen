@@ -1,3 +1,4 @@
+using System.Data;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -25,18 +26,24 @@ namespace VideoGen.API.Controllers.Admin
         readonly IWebHostEnvironment _env;
         readonly IHttpClientFactory _httpClientFactory;
         readonly IServicesRepository _servicesRepo;
+        readonly IDbConnection _db;
+        readonly IHostApplicationLifetime _appLifetime;
 
         public ServicesController(
             IConfiguration config,
             IWebHostEnvironment env,
             IHttpClientFactory httpClientFactory,
-            IServicesRepository servicesRepo
+            IServicesRepository servicesRepo,
+            IDbConnection dbConnection,
+            IHostApplicationLifetime appLifetime
         )
         {
             _config = config;
             _env = env;
             _httpClientFactory = httpClientFactory;
             _servicesRepo = servicesRepo;
+            _db = dbConnection;
+            _appLifetime = appLifetime;
         }
 
         [HttpGet("get-available-services")]
@@ -235,31 +242,38 @@ namespace VideoGen.API.Controllers.Admin
                     hasSchema = true;
                     var sqlDir = Path.Combine(repoRoot, "VideoGen.SQL");
                     CopyDirectory(repoSqlDir, sqlDir, installedFiles, repoRoot);
-                    var (exitCode, output) = await RunProcess("cmd.exe", "/c deploy.bat", sqlDir);
+                    var (exitCode, output) = await RunProcess("cmd.exe", "/c npx gulp", sqlDir);
                     if (exitCode != 0)
                     {
-                        return Json(new ApiResponse { success = false, message = $"Database migration failed: {output}" });
+                        return Json(new ApiResponse { success = false, message = $"Failed to generate deploy.sql: {output}" });
                     }
-                }
 
-                var icon = "";
-                if (!string.IsNullOrWhiteSpace(request.IconUrl))
-                {
+                    // execute deploy.sql — it is a psql script, so run each referenced
+                    // file in order through the app database connection instead
+                    var deployPath = Path.Combine(sqlDir, "deploy.sql");
+                    if (!System.IO.File.Exists(deployPath))
+                    {
+                        return Json(new ApiResponse { success = false, message = "deploy.sql was not generated" });
+                    }
                     try
                     {
-                        var ext = Path.GetExtension(new Uri(request.IconUrl).AbsolutePath);
-                        if (string.IsNullOrEmpty(ext)) ext = ".png";
-                        icon = $"{request.Key}{ext}";
-                        var bytes = await _httpClientFactory.CreateClient().GetByteArrayAsync(request.IconUrl);
-                        foreach (var dir in GetIconDirs())
+                        if (_db.State != ConnectionState.Open) _db.Open();
+                        foreach (var line in await System.IO.File.ReadAllLinesAsync(deployPath))
                         {
-                            Directory.CreateDirectory(dir);
-                            await System.IO.File.WriteAllBytesAsync(Path.Combine(dir, icon), bytes);
+                            var trimmed = line.Trim();
+                            if (!trimmed.StartsWith("\\i ")) continue;
+                            var scriptPath = Path.Combine(sqlDir, trimmed[3..].Trim().Replace('/', Path.DirectorySeparatorChar));
+                            if (!System.IO.File.Exists(scriptPath)) continue;
+                            var sql = await System.IO.File.ReadAllTextAsync(scriptPath);
+                            if (string.IsNullOrWhiteSpace(sql)) continue;
+                            using var command = _db.CreateCommand();
+                            command.CommandText = sql;
+                            command.ExecuteNonQuery();
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        icon = "";
+                        return Json(new ApiResponse { success = false, message = $"Database migration failed: {ex.Message}" });
                     }
                 }
 
@@ -270,10 +284,11 @@ namespace VideoGen.API.Controllers.Admin
                     Name = request.Name,
                     Type = GetServiceTypeId(request.Type),
                     GitRepo = request.GitRepo,
-                    Icon = icon,
                     HasSchema = hasSchema,
                     InstalledFiles = JsonSerializer.Serialize(installedFiles)
                 });
+
+                RestartServer();
 
                 return Json(new ApiResponse { success = true, message = $"{request.Name} installed" });
             }
@@ -281,6 +296,84 @@ namespace VideoGen.API.Controllers.Admin
             {
                 return Json(new ApiResponse { success = false, message = ex.Message });
             }
+        }
+
+        [HttpPost("uninstall")]
+        public async Task<IActionResult> Uninstall([FromBody] UninstallServiceRequest request)
+        {
+            try
+            {
+                var service = await _servicesRepo.GetByKey(request.Key);
+                if (service == null)
+                {
+                    return Json(new ApiResponse { success = false, message = "Service not found" });
+                }
+                var repoRoot = Path.GetFullPath(Path.Combine(_env.ContentRootPath, "..")) + Path.DirectorySeparatorChar;
+
+                // run uninstall.sql from the downloaded repository when the service has schema
+                if (service.HasSchema)
+                {
+                    var downloadDir = Path.Combine(AppContext.BaseDirectory, "Downloads", $"{service.Key}-{service.Version}");
+                    var uninstallScript = Directory.Exists(downloadDir)
+                        ? Directory.GetFiles(downloadDir, "uninstall.sql", SearchOption.AllDirectories).FirstOrDefault()
+                        : null;
+                    if (uninstallScript != null)
+                    {
+                        try
+                        {
+                            if (_db.State != ConnectionState.Open) _db.Open();
+                            using var command = _db.CreateCommand();
+                            command.CommandText = await System.IO.File.ReadAllTextAsync(uninstallScript);
+                            command.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            return Json(new ApiResponse { success = false, message = $"Database rollback failed: {ex.Message}" });
+                        }
+                    }
+                }
+
+                // delete installed files (paths are relative to the repo root)
+                var files = JsonSerializer.Deserialize<List<string>>(service.InstalledFiles) ?? new List<string>();
+                foreach (var file in files)
+                {
+                    var fullPath = Path.GetFullPath(Path.Combine(repoRoot, file));
+                    if (fullPath.StartsWith(repoRoot) && System.IO.File.Exists(fullPath))
+                    {
+                        System.IO.File.Delete(fullPath);
+                    }
+                }
+
+                await _servicesRepo.Delete(service.Key);
+                RestartServer();
+
+                return Json(new ApiResponse { success = true, message = $"{service.Name} uninstalled" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse { success = false, message = ex.Message });
+            }
+        }
+
+        // restart the web server so installed/removed .cs files are compiled & loaded —
+        // fire and forget so the response returns first
+        private void RestartServer()
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(3));
+                    Process.Start(new ProcessStartInfo("cmd.exe",
+                        "/c start \"\" /min cmd /k \"timeout /t 3 >nul & dotnet run\"")
+                    {
+                        WorkingDirectory = _env.ContentRootPath,
+                        CreateNoWindow = true
+                    });
+                    _appLifetime.StopApplication();
+                }
+                catch { }
+            });
         }
 
         private string? ResolveLocalRepoPath(string gitrepo)
@@ -299,17 +392,6 @@ namespace VideoGen.API.Controllers.Admin
                 if (Directory.Exists(full)) return full;
             }
             return null;
-        }
-
-        private List<string> GetIconDirs()
-        {
-            var dirs = new List<string> { Path.Combine(_env.ContentRootPath, "wwwroot", "services") };
-            var clientPublic = Path.GetFullPath(Path.Combine(_env.ContentRootPath, "..", "VideoGen.Web.Client", "public", "services"));
-            if (Directory.Exists(Path.GetDirectoryName(clientPublic)!))
-            {
-                dirs.Add(clientPublic);
-            }
-            return dirs;
         }
 
         private static void CopyDirectory(string source, string target, List<string>? installedFiles = null, string? relativeTo = null)

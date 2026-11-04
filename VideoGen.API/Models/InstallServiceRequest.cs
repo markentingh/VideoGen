@@ -7,6 +7,5 @@ namespace VideoGen.API.Models
         public string Name { get; set; } = "";
         public string Type { get; set; } = "";
         public string GitRepo { get; set; } = "";
-        public string IconUrl { get; set; } = "";
     }
 }

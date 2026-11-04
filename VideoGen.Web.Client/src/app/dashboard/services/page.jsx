@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSession } from '@/context/session';
+import { useModal } from '@/context/modal';
 import { Services } from '@/api/admin/services';
+import Button from '@/components/ui/button';
 import ButtonIcon from '@/components/ui/button-icon';
+import ButtonOutline from '@/components/ui/button-outline';
 import Message from '@/components/ui/message';
 import Spinner from '@/components/ui/spinner';
 import Settings from './components/Settings';
@@ -37,7 +40,8 @@ const menuItems = [
 
 export default function DashboardServices() {
   const session = useSession();
-  const { getAvailableServices, getInstalled, install } = Services(session);
+  const { showModal, closeModal } = useModal();
+  const { getAvailableServices, getInstalled, install, uninstall } = Services(session);
   const [active, setActive] = useState('llms');
   const [services, setServices] = useState([]);
   const [installed, setInstalled] = useState({});
@@ -74,14 +78,56 @@ export default function DashboardServices() {
     install(service).then((response) => {
       setInstalling(null);
       if (response.data.success) {
-        setMessage({ type: 'info', text: response.data.message || `${service.name} installed` });
         fetchInstalled();
+        showRestartingModal(service.name, 'installing');
       } else {
         setMessage({ type: 'error', text: response.data.message || `Failed to install ${service.name}` });
       }
     }).catch((error) => {
       setInstalling(null);
       setMessage({ type: 'error', text: error?.response?.data?.message || `Failed to install ${service.name}` });
+    });
+  };
+
+  const showRestartingModal = (serviceName, verb) => {
+    showModal({
+      title: 'Server Restarting',
+      icon: 'info',
+      message: `The API server is restarting to finish ${verb} the ${serviceName} service and will be back online within the next 60 seconds.`,
+      buttons: <Button onClick={closeModal}>OK</Button>
+    });
+  };
+
+  const handleUninstall = (service) => {
+    showModal({
+      title: `Uninstall ${service.name}`,
+      icon: 'warning',
+      message: 'Do you really want to uninstall this service? Warning: Any database records associated with this service may be permanently deleted.',
+      buttons: (
+        <>
+          <ButtonOutline
+            color="green"
+            onClick={() => {
+              closeModal();
+              uninstall(service.key).then((response) => {
+                if (response.data.success) {
+                  fetchInstalled();
+                  showRestartingModal(service.name, 'uninstalling');
+                } else {
+                  setMessage({ type: 'error', text: response.data.message || `Failed to uninstall ${service.name}` });
+                }
+              }).catch((error) => {
+                setMessage({ type: 'error', text: error?.response?.data?.message || `Failed to uninstall ${service.name}` });
+              });
+            }}
+          >
+            Yes
+          </ButtonOutline>
+          <ButtonOutline color="gray" onClick={closeModal}>
+            Cancel
+          </ButtonOutline>
+        </>
+      )
     });
   };
 
@@ -137,7 +183,7 @@ export default function DashboardServices() {
           </div>
         ) : active === 'settings'
           ? <Settings onSaved={fetchServices} />
-          : activeItem && <activeItem.Component services={activeServices} installed={installed} installing={installing} onInstall={handleInstall} />}
+          : activeItem && <activeItem.Component services={activeServices} installed={installed} installing={installing} onInstall={handleInstall} onUninstall={handleUninstall} />}
       </div>
     </div>
   );

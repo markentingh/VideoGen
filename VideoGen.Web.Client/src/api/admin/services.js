@@ -6,6 +6,7 @@ const Services = (args) => Api({ ...args }).endpoints(({ api }) => {
     getAvailableServices: () => api.get(`${apiPath}/get-available-services`),
     getInstalled: () => api.get(`${apiPath}/get-installed`),
     install: (service) => api.post(`${apiPath}/install`, service),
+    uninstall: (key) => api.post(`${apiPath}/uninstall`, { Key: key }),
     getUrls: () => api.get(`${apiPath}/get-urls`),
     saveUrls: (urls) => api.post(`${apiPath}/save-urls`, { Urls: urls }),
   };

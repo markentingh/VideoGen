@@ -17,9 +17,8 @@ export default function ServiceConfig() {
   const { getPlatforms, savePlatform, deletePlatform } = OpenAI(session);
 
   const [platform, setPlatform] = useState(platforms[0]?.name || '');
-  const [model, setModel] = useState(platforms[0]?.models[0]?.model || '');
   const [apiKey, setApiKey] = useState('');
-  const [custom, setCustom] = useState({ endpoint: '', model: '', apiKey: '' });
+  const [custom, setCustom] = useState({ endpoint: '', model: '', name: '', apiKey: '' });
   const [added, setAdded] = useState([]);
   const [message, setMessage] = useState(null);
 
@@ -55,15 +54,15 @@ export default function ServiceConfig() {
     if (isCustom) {
       const name = custom.endpoint ? new URL(custom.endpoint).hostname : 'Custom';
       if (requireApiKey(name, custom.apiKey)) return;
-      record = { Name: name, Endpoint: custom.endpoint, Model: custom.model, ApiKey: custom.apiKey };
+      record = { Name: name, Endpoint: custom.endpoint, Model: custom.model, ModelName: custom.name, ApiKey: custom.apiKey };
     } else {
       if (requireApiKey(platform, apiKey)) return;
-      record = { Name: platform, Endpoint: selectedPlatform?.endpoint || '', Model: model, ApiKey: apiKey };
+      record = { Name: platform, Endpoint: selectedPlatform?.endpoint || '', ApiKey: apiKey };
     }
     savePlatform(record).then((response) => {
       if (response.data.success) {
         setApiKey('');
-        setCustom({ endpoint: '', model: '', apiKey: '' });
+        setCustom({ endpoint: '', model: '', name: '', apiKey: '' });
         fetchPlatforms();
       } else {
         setMessage({ type: 'error', text: response.data.message || 'Failed to add platform' });
@@ -90,8 +89,6 @@ export default function ServiceConfig() {
     { value: CUSTOM, label: 'Custom...' }
   ];
 
-  const modelOptions = (selectedPlatform?.models || []).map((m) => ({ value: m.model, label: m.name }));
-
   return (
     <div>
       {message && (
@@ -105,26 +102,11 @@ export default function ServiceConfig() {
           label="Platform"
           options={platformOptions}
           value={platform}
-          onChange={(e) => {
-            const value = e.target.value;
-            setPlatform(value);
-            const next = platforms.find((p) => p.name === value);
-            setModel(next?.models[0]?.model || '');
-          }}
+          onChange={(e) => setPlatform(e.target.value)}
           className="flex-1"
         />
         {!isCustom && (
           <>
-            {modelOptions.length > 0 && (
-              <Select
-                name="model"
-                label="Model"
-                options={modelOptions}
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="flex-1"
-              />
-            )}
             <Input
               name="apiKey"
               label="API Key"
@@ -148,13 +130,21 @@ export default function ServiceConfig() {
               value={custom.endpoint}
               onInput={(e) => setCustom((prev) => ({ ...prev, endpoint: e.target.value }))}
               placeholder="https://api.example.com/v1"
-              className="flex-1"
+              className="flex-[2]"
             />
             <Input
               name="customModel"
-              label="Model"
+              label="Model Key"
               value={custom.model}
               onInput={(e) => setCustom((prev) => ({ ...prev, model: e.target.value }))}
+              placeholder="gpt-6-astra"
+              className="flex-1"
+            />
+            <Input
+              name="customModelName"
+              label="Model Name"
+              value={custom.name}
+              onInput={(e) => setCustom((prev) => ({ ...prev, name: e.target.value }))}
               className="flex-1"
             />
             <Input
@@ -163,7 +153,7 @@ export default function ServiceConfig() {
               type="password"
               value={custom.apiKey}
               onInput={(e) => setCustom((prev) => ({ ...prev, apiKey: e.target.value }))}
-              className="flex-1"
+              className="flex-[2]"
             />
           </div>
           <Button onClick={handleAdd}>+ Add Platform</Button>
@@ -179,7 +169,7 @@ export default function ServiceConfig() {
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{item.name}</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                  {item.model}{item.endpoint ? ` — ${item.endpoint}` : ''}
+                  {item.modelName || item.model}{item.endpoint ? ` — ${item.endpoint}` : ''}
                 </p>
               </div>
               <ButtonIcon name="delete" color="red" title="Delete platform" onClick={() => handleDelete(item.id)} />

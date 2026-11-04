@@ -101,6 +101,35 @@ function sortByDependencies(files, folder) {
   return result;
 }
 
+// Ordering tiers for loose .sql files (e.g. inside Services/) that are not
+// organized into Tables/Indexes/etc subfolders. Tier is determined by file content.
+function classifySqlContent(sql) {
+  if (/CREATE\s+(?:OR\s+REPLACE\s+)?SEQUENCE/i.test(sql)) return 0;
+  if (/CREATE\s+TABLE/i.test(sql)) return 1;
+  if (/CREATE\s+(?:UNIQUE\s+)?INDEX/i.test(sql)) return 2;
+  if (/CREATE\s+(?:OR\s+REPLACE\s+)?(?:FUNCTION|PROCEDURE|TRIGGER)/i.test(sql)) return 3;
+  if (/CREATE\s+(?:OR\s+REPLACE\s+)?VIEW/i.test(sql)) return 4;
+  return 5; // ALTER / INSERT / UPDATE / misc — runs last
+}
+
+function sortByContent(files, folder) {
+  const buckets = files.map(file => ({
+    file,
+    tier: classifySqlContent(fs.readFileSync(path.join(__dirname, folder, file), 'utf8'))
+  }));
+  const result = [];
+  for (let tier = 0; tier <= 5; tier++) {
+    let group = buckets.filter(b => b.tier === tier).map(b => b.file);
+    if (tier === 1) {
+      group = sortByDependencies(group, folder); // preserve FK ordering between tables
+    } else {
+      group.sort();
+    }
+    result.push(...group);
+  }
+  return result;
+}
+
 function getSqlFiles(folder) {
   const fullPath = path.join(__dirname, folder);
   if (!fs.existsSync(fullPath)) {
@@ -114,7 +143,7 @@ function getSqlFiles(folder) {
       const entryPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         collect(entryPath);
-      } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.sql') && entry.name.toLowerCase() !== deployFile.toLowerCase()) {
+      } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.sql') && entry.name.toLowerCase() !== deployFile.toLowerCase() && entry.name.toLowerCase() !== 'uninstall.sql') {
         files.push(entryPath);
       }
     }
@@ -138,6 +167,10 @@ function getSqlFiles(folder) {
 
   if (folder === 'Tables') {
     return sortByDependencies(relativeFiles, folder);
+  }
+
+  if (folder === 'Services') {
+    return sortByContent(relativeFiles, folder);
   }
 
   return relativeFiles.sort();

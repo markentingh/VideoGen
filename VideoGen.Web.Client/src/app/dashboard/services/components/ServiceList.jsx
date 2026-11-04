@@ -4,7 +4,7 @@ import Icon from '@/components/ui/icon';
 import Spinner from '@/components/ui/spinner';
 import { serviceModules } from '@/helpers/services';
 
-export default function ServiceList({ services = [], installed = {}, installing, onInstall }) {
+export default function ServiceList({ services = [], installed = {}, installing, onInstall, onUninstall }) {
   const [expanded, setExpanded] = useState(null);
 
   if (services.length === 0) {
@@ -20,7 +20,7 @@ export default function ServiceList({ services = [], installed = {}, installing,
         const ServiceConfig = serviceModule?.serviceConfig;
         const canExpand = !!installedService && !!ServiceConfig;
         const isExpanded = expanded === service.key;
-        const icon = installedService?.icon ? `/services/${installedService.icon}` : serviceModule?.icon ? `/services/${serviceModule.icon}` : service.iconurl;
+        const icon = serviceModule?.icon ? `/services/${serviceModule.icon}` : service.iconurl;
         return (
           <li
             key={service.key || service.gitrepo}
@@ -66,6 +66,11 @@ export default function ServiceList({ services = [], installed = {}, installing,
                 <Suspense fallback={<div className="flex justify-center py-4"><Spinner className="text-2xl" /></div>}>
                   <ServiceConfig />
                 </Suspense>
+                <div className="mt-4">
+                  <ButtonOutline color="red" size="small" onClick={() => onUninstall(service)}>
+                    Uninstall
+                  </ButtonOutline>
+                </div>
               </div>
             )}
           </li>

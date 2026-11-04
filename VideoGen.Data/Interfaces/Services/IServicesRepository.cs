@@ -7,5 +7,6 @@ namespace VideoGen.Data.Interfaces.Services
         Task<IEnumerable<Service>> GetAll();
         Task<Service?> GetByKey(string key);
         Task Upsert(Service service);
+        Task Delete(string key);
     }
 }

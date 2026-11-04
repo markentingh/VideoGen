@@ -23,5 +23,8 @@ SELECT 'CREATE DATABASE videogen' WHERE NOT EXISTS (SELECT FROM pg_database WHER
 -- Functions
 \i Functions/ResetSequences.sql
 
+-- Services
+\i Services/OpenAI/OpenAI.sql
+
 -- SeedData
 \i SeedData/AppRoles.sql

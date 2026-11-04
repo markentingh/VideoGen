@@ -21,8 +21,8 @@ namespace VideoGen.Plugins.Services.OpenAI.Repositories
 
         public async Task<int> Add(OpenAIPlatform platform)
         {
-            string query = @"INSERT INTO public.""OpenAI"" (""Name"", ""Endpoint"", ""Model"", ""ApiKey"")
-                VALUES (@Name, @Endpoint, @Model, @ApiKey) RETURNING ""Id""";
+            string query = @"INSERT INTO public.""OpenAI"" (""Name"", ""Endpoint"", ""Model"", ""ModelName"", ""ApiKey"")
+                VALUES (@Name, @Endpoint, @Model, @ModelName, @ApiKey) RETURNING ""Id""";
             return await _dbConnection.ExecuteScalarAsync<int>(query, platform);
         }
 
@@ -32,6 +32,7 @@ namespace VideoGen.Plugins.Services.OpenAI.Repositories
                 ""Name"" = @Name,
                 ""Endpoint"" = @Endpoint,
                 ""Model"" = @Model,
+                ""ModelName"" = @ModelName,
                 ""ApiKey"" = @ApiKey
                 WHERE ""Id"" = @Id";
             await _dbConnection.ExecuteAsync(query, platform);

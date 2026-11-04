@@ -3,5 +3,8 @@ CREATE TABLE IF NOT EXISTS public."OpenAI" (
     "Name" VARCHAR(255) NOT NULL DEFAULT '',
     "Endpoint" VARCHAR(255) NULL,
     "Model" VARCHAR(32) NULL,
+    "ModelName" VARCHAR(32) NULL,
     "ApiKey" VARCHAR(128) NOT NULL DEFAULT ''
 );
+
+ALTER TABLE public."OpenAI" ADD COLUMN IF NOT EXISTS "ModelName" VARCHAR(32) NULL;

@@ -27,18 +27,23 @@ namespace VideoGen.Data.Repositories.Services
 
         public async Task Upsert(Service service)
         {
-            string query = @"INSERT INTO public.""Services"" (""Key"", ""Version"", ""Name"", ""Type"", ""GitRepo"", ""Icon"", ""HasSchema"", ""InstalledFiles"")
-                VALUES (@Key, @Version, @Name, @Type, @GitRepo, @Icon, @HasSchema, @InstalledFiles)
+            string query = @"INSERT INTO public.""Services"" (""Key"", ""Version"", ""Name"", ""Type"", ""GitRepo"", ""HasSchema"", ""InstalledFiles"")
+                VALUES (@Key, @Version, @Name, @Type, @GitRepo, @HasSchema, @InstalledFiles)
                 ON CONFLICT (""Key"") DO UPDATE SET
                     ""Version"" = @Version,
                     ""Name"" = @Name,
                     ""Type"" = @Type,
                     ""GitRepo"" = @GitRepo,
-                    ""Icon"" = @Icon,
                     ""HasSchema"" = @HasSchema,
                     ""InstalledFiles"" = @InstalledFiles,
                     ""Installed"" = CURRENT_TIMESTAMP";
             await _dbConnection.ExecuteAsync(query, service);
+        }
+
+        public async Task Delete(string key)
+        {
+            string query = @"DELETE FROM public.""Services"" WHERE ""Key"" = @key";
+            await _dbConnection.ExecuteAsync(query, new { key });
         }
     }
 }
