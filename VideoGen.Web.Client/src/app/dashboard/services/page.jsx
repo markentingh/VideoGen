@@ -5,20 +5,32 @@ import ButtonIcon from '@/components/ui/button-icon';
 import Message from '@/components/ui/message';
 import Spinner from '@/components/ui/spinner';
 import Settings from './components/Settings';
+import LLMs from './components/LLMs';
 import TranscriptGeneration from './components/TranscriptGeneration';
 import VideoLibrary from './components/VideoLibrary';
 import VideoGeneration from './components/VideoGeneration';
 import VideoTransitions from './components/VideoTransitions';
+import MusicLibrary from './components/MusicLibrary';
+import MusicGeneration from './components/MusicGeneration';
+import ImageLibrary from './components/ImageLibrary';
 import ImageGeneration from './components/ImageGeneration';
 import TextToSpeech from './components/TextToSpeech';
+import SoundFxLibrary from './components/SoundFxLibrary';
+import SoundFxGeneration from './components/SoundFxGeneration';
 import TextCaptions from './components/TextCaptions';
 
 const menuItems = [
+  { key: 'llms', label: 'LLMs', Component: LLMs },
   { key: 'transcript-generation', label: 'Transcript Generation', Component: TranscriptGeneration },
+  { key: 'image-library', label: 'Image Library', Component: ImageLibrary },
+  { key: 'image-generation', label: 'Image Generation', Component: ImageGeneration },
   { key: 'video-library', label: 'Video Library', Component: VideoLibrary },
   { key: 'video-generation', label: 'Video Generation', Component: VideoGeneration },
   { key: 'video-transitions', label: 'Video Transitions', Component: VideoTransitions },
-  { key: 'image-generation', label: 'Image Generation', Component: ImageGeneration },
+  { key: 'music-library', label: 'Music Library', Component: MusicLibrary },
+  { key: 'music-generation', label: 'Music Generation', Component: MusicGeneration },
+  { key: 'sound-fx-library', label: 'Sound FX Library', Component: SoundFxLibrary },
+  { key: 'sound-fx-generation', label: 'Sound FX Generation', Component: SoundFxGeneration },
   { key: 'text-to-speech', label: 'Text-To-Speech', Component: TextToSpeech },
   { key: 'text-captions', label: 'Text Captions', Component: TextCaptions },
 ];
@@ -26,7 +38,7 @@ const menuItems = [
 export default function DashboardServices() {
   const session = useSession();
   const { getAvailableServices, getInstalled, install } = Services(session);
-  const [active, setActive] = useState('transcript-generation');
+  const [active, setActive] = useState('llms');
   const [services, setServices] = useState([]);
   const [installed, setInstalled] = useState({});
   const [installing, setInstalling] = useState(null);

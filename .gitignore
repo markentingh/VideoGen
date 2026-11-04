@@ -197,3 +197,7 @@ _Pvt_Extensions/
 ModelManifest.xml
 # Installed service files (copied into the client by the service installer)
 VideoGen.Web.Client/src/services/
+
+# Installed service files (copied into the projects by the service installer)
+VideoGen.Plugins/Services/
+VideoGen.SQL/Services/

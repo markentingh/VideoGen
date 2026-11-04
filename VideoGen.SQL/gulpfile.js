@@ -25,6 +25,7 @@ const schemaFolders = [
   'Indexes',
   'Functions',
   'Views',
+  'Services',
   'SeedData'
 ];
 

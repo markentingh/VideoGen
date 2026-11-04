@@ -1,5 +1,23 @@
 [
   {
+    "key": "openai",
+    "version": "0.1.0",
+    "name": "OpenAI",
+    "type": "llms",
+    "summary": "Connect to any LLM that supports the OpenAI API model.",
+    "gitrepo": "VideoGen.Services/LLMs/OpenAI",
+    "iconurl": "/api/admin/services/icon?file=VideoGen.Services/LLMs/OpenAI/VideoGen.Web.Client/public/services/openai.png"
+  },
+  {
+    "key": "ollama",
+    "version": "0.1.0",
+    "name": "Ollama",
+    "type": "llms",
+    "summary": "Connect to an Ollama server and select supported LLM models to download and use.",
+    "gitrepo": "VideoGen.Services/LLMs/Ollama",
+    "iconurl": "/api/admin/services/icon?file=VideoGen.Services/LLMs/Ollama/VideoGen.Web.Client/public/services/ollama.png"
+  },
+  {
     "key": "short-transcripts",
     "version": "0.1.0",
     "name": "Short Transcripts",

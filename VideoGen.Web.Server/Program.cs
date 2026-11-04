@@ -26,13 +26,23 @@ builder.Services.AddHealthChecks();
 
 builder.Services.AddControllers()
     .AddApplicationPart(Assembly.Load("VideoGen.API"))
-    .AddApplicationPart(Assembly.Load("VideoGen.Auth"));
+    .AddApplicationPart(Assembly.Load("VideoGen.Auth"))
+    .AddApplicationPart(Assembly.Load("VideoGen.Plugins"));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
 
 builder.AddApiStartupService();
 builder.AddAuthService();
+
+// let each installed service plugin register its own Dapper repositories
+foreach (var type in AppDomain.CurrentDomain.GetAssemblies()
+    .SelectMany(a => { try { return a.GetTypes(); } catch { return Type.EmptyTypes; } })
+    .Where(t => typeof(VideoGen.Plugins.IDapperStartupService).IsAssignableFrom(t) && t is { IsInterface: false, IsAbstract: false }))
+{
+    type.GetMethod(nameof(VideoGen.Plugins.IDapperStartupService.AddDapperStartupService), BindingFlags.Public | BindingFlags.Static)
+        ?.Invoke(null, new object[] { builder });
+}
 
 builder.Services.Configure<VideoGen.API.Models.EmailSettings>(builder.Configuration.GetSection("SendGrid"));
 builder.Services.AddScoped<VideoGen.API.Services.IEmailService, VideoGen.API.Services.EmailService>();

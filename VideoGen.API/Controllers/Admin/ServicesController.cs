@@ -219,11 +219,12 @@ namespace VideoGen.API.Controllers.Admin
                     CopyDirectory(repoClientDir, Path.Combine(repoRoot, "VideoGen.Web.Client"), installedFiles, repoRoot);
                 }
 
-                // 3. copy .cs files into VideoGen.Plugins/Services/{key}
+                // 3. copy .cs files into the VideoGen.Plugins project (mirrors project root;
+                //    service files must live under Services/{ServiceName}/ in the repo)
                 var repoPluginsDir = Path.Combine(downloadDir, "VideoGen.Plugins");
                 if (Directory.Exists(repoPluginsDir))
                 {
-                    CopyDirectory(repoPluginsDir, Path.Combine(repoRoot, "VideoGen.Plugins", "Services", request.Key), installedFiles, repoRoot);
+                    CopyDirectory(repoPluginsDir, Path.Combine(repoRoot, "VideoGen.Plugins"), installedFiles, repoRoot);
                 }
 
                 // 4. copy SQL scripts into VideoGen.SQL and run the deploy scripts
@@ -349,13 +350,19 @@ namespace VideoGen.API.Controllers.Admin
 
         private static int GetServiceTypeId(string type) => type switch
         {
-            "transcript-generation" => 1,
-            "video-library" => 2,
-            "video-generation" => 3,
-            "video-transitions" => 4,
-            "image-generation" => 5,
-            "text-to-speech" => 6,
-            "text-captions" => 7,
+            "llms" => 1,
+            "transcript-generation" => 2,
+            "image-library" => 3,
+            "image-generation" => 4,
+            "video-library" => 5,
+            "video-generation" => 6,
+            "video-transitions" => 7,
+            "music-library" => 8,
+            "music-generation" => 9,
+            "sound-fx-library" => 10,
+            "sound-fx-generation" => 11,
+            "text-to-speech" => 12,
+            "text-captions" => 13,
             _ => 0
         };
 

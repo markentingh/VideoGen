@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS public."OpenAI" (
+    "Id" SERIAL PRIMARY KEY,
+    "Name" VARCHAR(255) NOT NULL DEFAULT '',
+    "Endpoint" VARCHAR(255) NULL,
+    "Model" VARCHAR(32) NULL,
+    "ApiKey" VARCHAR(128) NOT NULL DEFAULT ''
+);
